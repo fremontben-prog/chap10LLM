@@ -1,0 +1,25 @@
+name: chap10llm
+channels:
+- conda-forge
+- defaults
+dependencies:
+  - python=3.11
+  - streamlit=1.44.1
+  - pandas=2.2.3
+  - openpyxl=3.1.5
+  - pillow>=9.0.0
+  - tqdm
+  - pip
+  - pip:
+    - mistralai==0.4.2
+    - langchain==0.3.23
+    - faiss-cpu==1.10.0
+    - PyPDF2==3.0.1
+    - python-docx==1.1.2
+    - python-dotenv==1.1.0
+    - requests==2.32.3
+    - streamlit-feedback==0.1.4
+    - pymupdf>=1.22.0
+    - easyocr
+    - numpy>=1.24.0
+    - langchain-core>=0.3.0
