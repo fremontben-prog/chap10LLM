@@ -1,0 +1,112 @@
+[
+  {
+    "ID":"C01",
+    "Catégorie":"COMPLEX",
+    "Question":"Quel joueur a le meilleur pourcentage à 3 points sur les 5 derniers matchs ?",
+    "Notes":"Agrégation sur fenêtre glissante, comparaison multi-joueurs",
+    "Faithfulness":0.222,
+    "Answer Relevancy":null,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Score Moyen":0.074
+  },
+  {
+    "ID":"C02",
+    "Catégorie":"COMPLEX",
+    "Question":"Compare l'efficacité offensive (points + passes décisives) de Luka Doncic et Jay...",
+    "Notes":"Calcul composite, comparaison deux joueurs",
+    "Faithfulness":0.0,
+    "Answer Relevancy":null,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Score Moyen":0.0
+  },
+  {
+    "ID":"C03",
+    "Catégorie":"COMPLEX",
+    "Question":"Quelle équipe a la meilleure défense sur les 10 derniers matchs ?",
+    "Notes":"Agrégation équipe, fenêtre glissante longue",
+    "Faithfulness":0.571,
+    "Answer Relevancy":null,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Score Moyen":0.19
+  },
+  {
+    "ID":"C04",
+    "Catégorie":"COMPLEX",
+    "Question":"Quel pivot a le meilleur ratio points\/minutes jouées cette semaine ?",
+    "Notes":"Filtre par poste, ratio calculé",
+    "Faithfulness":0.0,
+    "Answer Relevancy":null,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Score Moyen":0.0
+  },
+  {
+    "ID":"N01",
+    "Catégorie":"NOISY",
+    "Question":"kari irving cmb de point il a mi hier ??",
+    "Notes":"Fautes de frappe, langage SMS",
+    "Faithfulness":0.231,
+    "Answer Relevancy":null,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Score Moyen":0.077
+  },
+  {
+    "ID":"N02",
+    "Catégorie":"NOISY",
+    "Question":"Qui est le meilleur joueur ?",
+    "Notes":"Question ambiguë sans critère",
+    "Faithfulness":0.615,
+    "Answer Relevancy":null,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Score Moyen":0.205
+  },
+  {
+    "ID":"N03",
+    "Catégorie":"NOISY",
+    "Question":"Est-ce que les Lakers ont gagné ou perdu et combien de points de Lebron ?",
+    "Notes":"Double question, formulation maladroite",
+    "Faithfulness":0.571,
+    "Answer Relevancy":null,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Score Moyen":0.19
+  },
+  {
+    "ID":"S01",
+    "Catégorie":"SIMPLE",
+    "Question":"Combien de points a marqué LeBron James lors du dernier match ?",
+    "Notes":"Stat directe, un joueur, un match",
+    "Faithfulness":0.429,
+    "Answer Relevancy":null,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Score Moyen":0.143
+  },
+  {
+    "ID":"S02",
+    "Catégorie":"SIMPLE",
+    "Question":"Quel est le pourcentage aux tirs à 3 points de Stephen Curry cette saison ?",
+    "Notes":"Stat de saison, un joueur",
+    "Faithfulness":0.5,
+    "Answer Relevancy":null,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Score Moyen":0.167
+  },
+  {
+    "ID":"S03",
+    "Catégorie":"SIMPLE",
+    "Question":"Combien de rebonds par match réalise Nikola Jokic en moyenne ?",
+    "Notes":"Moyenne de saison, stat simple",
+    "Faithfulness":0.333,
+    "Answer Relevancy":null,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Score Moyen":0.111
+  }
+]

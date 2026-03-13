@@ -8,7 +8,7 @@ Gère la base de données SQLite pour les interactions :
 import os
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import List, Dict, Optional, Tuple
 
 from sqlalchemy import (
@@ -186,7 +186,7 @@ def get_stats() -> Dict:
     """
     session = get_session()
     try:
-        today = datetime.utcnow().date()
+        today = datetime.now(UTC).date()
 
         total        = session.query(func.count(Interaction.id)).scalar() or 0
         with_feedback = (

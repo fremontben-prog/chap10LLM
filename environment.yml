@@ -1,25 +1,51 @@
 name: chap10llm
 channels:
-- conda-forge
-- defaults
+  - conda-forge
+  - defaults
 dependencies:
   - python=3.11
+  - intel-openmp
   - streamlit=1.44.1
   - pandas=2.2.3
   - openpyxl=3.1.5
   - pillow>=9.0.0
+  - numpy>=1.24.0
   - tqdm
   - pip
   - pip:
-    - mistralai==0.4.2
+    # ── LLM / RAG ────────────────────────────────────────────
+    - mistralai==1.2.5
     - langchain==0.3.23
+    - langchain-core>=0.3.0
+    - langchain-mistralai>=0.1.0
+    - langchain-community>=0.0.1
     - faiss-cpu==1.10.0
+
+    # ── Évaluation RAG ───────────────────────────────────────
+    - ragas>=0.1.0
+    - datasets>=2.14.0
+    - sentence-transformers>=2.2.0
+
+    # ── Validation données ───────────────────────────────────
+    - pydantic>=2.0.0
+    - pydantic-ai==0.0.14
+    - griffe==1.5.6
+
+    # ── Observabilité ────────────────────────────────────────
+    - logfire>=0.40.0
+
+    # ── Pipeline PDF / OCR ───────────────────────────────────
+    - pymupdf>=1.22.0
     - PyPDF2==3.0.1
+    - easyocr
+    # torch CUDA : installer manuellement après création de l'env
+    # pip install torch==2.7.0+cu128 torchvision --index-url https://download.pytorch.org/whl/cu128
+
+    # ── Base de données ──────────────────────────────────────
+    - sqlalchemy>=2.0.0
+
+    # ── Utilitaires ──────────────────────────────────────────
     - python-docx==1.1.2
     - python-dotenv==1.1.0
     - requests==2.32.3
     - streamlit-feedback==0.1.4
-    - pymupdf>=1.22.0
-    - easyocr
-    - numpy>=1.24.0
-    - langchain-core>=0.3.0

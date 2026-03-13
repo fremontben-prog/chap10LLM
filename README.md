@@ -24,22 +24,16 @@ cd <nom-du-repo>
 
 2. **Créer un environnement virtuel**
 
-```bash
-# Création de l'environnement virtuel
-python -m venv venv
 
-# Activation de l'environnement virtuel
-# Sur Windows
-venv\Scripts\activate
-# Sur macOS/Linux
-source venv/bin/activate
-```
 
 3. **Installer les dépendances**
 
-```bash
-pip install -r requirements.txt
-```
+## Installation
+
+1. `conda env create -f environment.yml`
+2. `conda activate chap10llm`
+3. **Windows + CUDA** : `.\setup_local.ps1`
+   **Linux CPU**       : `pip install torch torchvision`
 
 4. **Configurer la clé API**
 

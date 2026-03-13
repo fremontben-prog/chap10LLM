@@ -1,5 +1,7 @@
 # utils/data_loader.py
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE" # Pour gestion d'un conflit OpenMP classique sur Windows entre torch et conda
+
 import requests
 import zipfile
 import io
