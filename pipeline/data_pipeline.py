@@ -20,7 +20,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from mistralai import Mistral
 from dotenv import load_dotenv
 
@@ -190,7 +190,7 @@ def embed_chunks(chunks: List[Chunk], batch_size: int = 32) -> List[EmbeddedChun
         batch = chunks[i: i + batch_size]
         texts = [c.page_content for c in batch]
         try:
-            response = client.embeddings.create(model=EMBED_MODEL, input=texts)
+            response = client.embeddings.create(model=EMBED_MODEL, inputs=texts)
             for chunk, emb_obj in zip(batch, response.data):
                 try:
                     embedded.append(EmbeddedChunk(

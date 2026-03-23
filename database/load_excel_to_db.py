@@ -1,7 +1,7 @@
 """
 load_excel_to_db.py
 -------------------
-Pipeline d'ingestion du fichier regular_NBA.xlsx vers SQLite.
+Pipeline d'ingestion du fichier regular+NBA+(2).xlsx vers SQLite.
 
 Feuilles exploitées :
     - 'Données NBA'  → players + season_stats (569 joueurs, 44 colonnes utiles)
@@ -11,7 +11,7 @@ Note : la colonne Excel '15:00:00' (datetime.time bug) correspond à 3PM.
 
 Usage :
     python load_excel_to_db.py
-    python load_excel_to_db.py --excel data/regular_NBA.xlsx --season 2024-2025
+    python load_excel_to_db.py --excel inputs/regular+NBA+(2).xlsx --season 2024-2025
 """
 
 import os
@@ -20,6 +20,8 @@ import sqlite3
 import logging
 import argparse
 from typing import Optional
+
+import unicodedata
 
 import pandas as pd
 import numpy as np
@@ -31,10 +33,16 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # ── Configuration ────────────────────────────────────────────
-DATABASE_DIR  = "database"
+DATABASE_DIR  = os.path.dirname(os.path.abspath(__file__))
 DATABASE_FILE = os.path.join(DATABASE_DIR, "basketball.db")
-SCHEMA_FILE   = "schema.sql"
-DEFAULT_EXCEL  = "data/regular_NBA.xlsx"
+SCHEMA_FILE   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "schema.sql")
+DEFAULT_EXCEL = os.path.normpath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 
+    "..", 
+    os.getenv("INPUT_DIR_SQL"), 
+    "regular+NBA+(2).xlsx"
+))
+print(f"Defaul Excel Path : {DEFAULT_EXCEL}")
 DEFAULT_SEASON = "2024-2025"
 
 
@@ -76,7 +84,7 @@ class SeasonStatRow(BaseModel):
     fgm:    int   = Field(default=0, ge=0)
     fga:    int   = Field(default=0, ge=0)
     fg_pct: float = Field(default=0.0, ge=0)
-    three_pm:  int   = Field(default=0, ge=0)
+    min_after_15:  int   = Field(default=0, ge=0)
     three_pa:  int   = Field(default=0, ge=0)
     three_pct: float = Field(default=0.0, ge=0)
     ftm:    int   = Field(default=0, ge=0)
@@ -143,6 +151,15 @@ def ss(val, default: str = "") -> str:
     return str(val).strip()
 
 
+
+def normalize(text: str) -> str:
+    if not text:
+        return ""
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', text)
+        if unicodedata.category(c) != 'Mn'
+    ).lower()
+
 # ── Init DB ──────────────────────────────────────────────────
 
 def init_db(db_path: str = DATABASE_FILE) -> sqlite3.Connection:
@@ -194,8 +211,7 @@ def ingest_players_and_stats(
 ) -> tuple[int, int]:
     """
     Lit la feuille 'Données NBA' et insère players + season_stats.
-    Mapping exact des colonnes du fichier :
-        col index 11 (datetime 15:00:00) → 3PM (three_pm)
+    
     """
     df = xl.parse("Données NBA", header=1)
 
@@ -219,6 +235,7 @@ def ingest_players_and_stats(
     for idx, row in df.iterrows():
         player_name = ss(row.get("Player", ""))
         team_code   = ss(row.get("Team", "")).upper()
+        player_name_normalized = normalize(player_name) # Nom normalisé supprimant les accents et facilitant la recherche
 
         if not player_name or not team_code:
             continue
@@ -237,7 +254,7 @@ def ingest_players_and_stats(
                 fgm=si(row.get("FGM")),
                 fga=si(row.get("FGA")),
                 fg_pct=sf(row.get("FG%")),
-                three_pm=si(row.get("3PM")),    # colonne renommée
+                min_after_15=sf(row.get("3PM")), 
                 three_pa=si(row.get("3PA")),
                 three_pct=sf(row.get("3P%")),
                 ftm=si(row.get("FTM")),
@@ -282,12 +299,12 @@ def ingest_players_and_stats(
             # ── Joueur ───────────────────────────────────────
             age = si(row.get("Age"), None)
             conn.execute(
-                "INSERT OR IGNORE INTO players (full_name, team_code, age) VALUES (?,?,?)",
-                (player_name, team_code, age)
+                "INSERT OR IGNORE INTO players (full_name, full_name_normalized, team_code, age) VALUES (?,?,?,?)",
+                (player_name, player_name_normalized, team_code, age)
             )
             player_id = conn.execute(
-                "SELECT player_id FROM players WHERE full_name=? AND team_code=?",
-                (player_name, team_code)
+                "SELECT player_id FROM players WHERE full_name_normalized=? AND team_code=?",
+                (player_name_normalized, team_code)
             ).fetchone()[0]
             players_inserted += 1
 
@@ -297,7 +314,7 @@ def ingest_players_and_stats(
                     player_id, season,
                     gp, wins, losses, min_avg,
                     pts, fgm, fga, fg_pct,
-                    three_pm, three_pa, three_pct,
+                    min_after_15, three_pa, three_pct,
                     ftm, fta, ft_pct,
                     oreb, dreb, reb,
                     ast, tov, stl, blk, pf,
@@ -314,7 +331,7 @@ def ingest_players_and_stats(
                 player_id, stat.season,
                 stat.gp, stat.wins, stat.losses, stat.min_avg,
                 stat.pts, stat.fgm, stat.fga, stat.fg_pct,
-                stat.three_pm, stat.three_pa, stat.three_pct,
+                stat.min_after_15, stat.three_pa, stat.three_pct,
                 stat.ftm, stat.fta, stat.ft_pct,
                 stat.oreb, stat.dreb, stat.reb,
                 stat.ast, stat.tov, stat.stl, stat.blk, stat.pf,
@@ -328,7 +345,7 @@ def ingest_players_and_stats(
             stats_inserted += 1
 
         except Exception as e:
-            logger.warning(f"Ligne {idx} ({player_name}) ignorée : {e}")
+            logger.warning(f"Ligne {idx} ({player_name_normalized}) ignorée : {e}")
             errors += 1
 
     conn.commit()

@@ -16,7 +16,7 @@ import logging
 from typing import Optional
 
 from pydantic import BaseModel, Field
-from langchain.tools import Tool
+from langchain_core.tools import Tool
 from langchain_core.prompts import PromptTemplate
 from langchain_mistralai import ChatMistralAI
 from dotenv import load_dotenv
@@ -48,20 +48,19 @@ SELECT full_name, team_code, gp, pts_avg, reb_avg, ast_avg, ts_pct
 FROM v_top_scorers LIMIT 5;
 
 -- Q: Quel joueur a le meilleur % à 3 points (min 100 tirs) ?
-SELECT full_name, team_code, three_pa, three_pct, three_pm_per_game
+SELECT full_name, team_code, three_pa, three_pct
 FROM v_top_three_point LIMIT 10;
 
 -- Q: Quel est le % à 3 points de Stephen Curry ?
-SELECT full_name, team_code, gp, three_pm, three_pa, three_pct,
-       ROUND(CAST(three_pm AS REAL)/gp, 1) AS three_pm_per_game
+SELECT full_name, team_code, gp, three_pa, three_pct
 FROM v_player_stats
-WHERE full_name LIKE '%Curry%';
+WHERE full_name_normalized LIKE '%curry%';
 
 -- Q: Compare LeBron James et Nikola Jokic
 SELECT full_name, team_code, gp, pts_avg, reb_avg, ast_avg,
        fg_pct, three_pct, ts_pct, pie, plus_minus
 FROM v_player_stats
-WHERE full_name LIKE '%LeBron%' OR full_name LIKE '%Joki%';
+WHERE full_name_normalized LIKE '%leBron%' OR full_name_normalized LIKE '%joki%';
 
 -- Q: Quels sont les meilleurs rebondeurs ?
 SELECT full_name, team_code, gp, reb_avg, oreb_pct, dreb_pct
@@ -123,7 +122,7 @@ SELECT full_name, team_code, gp, wins, losses,
        ROUND(CAST(wins AS REAL)/NULLIF(gp,0)*100,1) AS win_pct,
        pts_avg, reb_avg, ast_avg
 FROM v_player_stats
-WHERE full_name LIKE '%Giannis%' OR full_name LIKE '%Antetokounmpo%';
+WHERE full_name_normalized LIKE '%giannis%' OR full_name_normalized LIKE '%antetokounmpo%';
 """
 
 
@@ -144,7 +143,7 @@ EXEMPLES :
 
 RÈGLES :
 1. Génère UNIQUEMENT la requête SQL brute, sans markdown ni explication
-2. Utilise LIKE pour les noms : WHERE full_name LIKE '%Curry%'
+2. Utilise LIKE pour les noms : WHERE full_name_normalized LIKE '%curry%'
 3. Limite avec LIMIT (max 20 lignes)
 4. Préfère les vues (v_player_stats, v_top_scorers, etc.) aux jointures manuelles
 5. Les stats PTS, REB, AST sont des TOTAUX de saison → divise par gp pour la moyenne
@@ -161,11 +160,11 @@ REQUÊTE SQL :"""
 
 DB_SCHEMA = """
 TABLE teams        : team_code (PK), team_name
-TABLE players      : player_id (PK), full_name, team_code, age
+TABLE players      : player_id (PK), full_name, full_name_normalized, team_code, age
 TABLE season_stats : stat_id, player_id, season,
     gp (matchs joués), wins, losses, min_avg (min/match),
     pts (total), fgm, fga, fg_pct (%),
-    three_pm (3PM total), three_pa, three_pct (%),
+    min_after_15, three_pa, three_pct (%),
     ftm, fta, ft_pct (%),
     oreb, dreb, reb (totaux),
     ast, tov, stl, blk, pf (totaux),
@@ -176,7 +175,7 @@ TABLE season_stats : stat_id, player_id, season,
     efg_pct, ts_pct, usg_pct, pace, pie, poss
 
 VUE v_player_stats : toutes les colonnes ci-dessus +
-    pts_avg, reb_avg, ast_avg, stl_avg, blk_avg, tov_avg (= total/gp),
+    pts_avg, reb_avg, ast_avg, stl_avg, blk_avg, tov_avg (= total/gp), oreb_avg, dreb_avg,
     win_pct, team_name
 
 VUE v_top_scorers      : triée par pts_avg DESC
