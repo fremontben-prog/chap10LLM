@@ -1,6 +1,6 @@
 # Assistant RAG avec Mistral
 
-Ce projet implémente un assistant virtuel basé sur le modèle Mistral, utilisant la technique de Retrieval-Augmented Generation (RAG) pour fournir des réponses précises et contextuelles à partir d'une base de connaissances personnalisée.
+Ce projet implémente un assistant virtuel basé sur le modèle Mistral, utilisant la technique de Retrieval-Augmented Generation (RAG) + SQL pour fournir des réponses précises et contextuelles à partir d'une base de connaissances personnalisée.
 
 ## Fonctionnalités
 
@@ -10,7 +10,7 @@ Ce projet implémente un assistant virtuel basé sur le modèle Mistral, utilisa
 
 ## Prérequis
 
-- Python 3.9+ 
+- Python 3.10 
 - Clé API Mistral (obtenue sur [console.mistral.ai](https://console.mistral.ai/))
 
 ## Installation
@@ -24,7 +24,7 @@ cd <nom-du-repo>
 
 2. **Créer un environnement virtuel**
 
-
+N/A
 
 3. **Installer les dépendances**
 
@@ -49,7 +49,11 @@ MISTRAL_API_KEY=votre_clé_api_mistral
 .
 ├── MistralChat.py          # Application Streamlit principale
 ├── indexer.py              # Script pour indexer les documents
+├── nba_engine.py           # Dossier pour préparer le prompt
 ├── inputs/                 # Dossier pour les documents sources
+├── inputs_sql/             # Dossier pour les documents SQL (2ème itéraion)
+├── monitoring/             # Dossier pour monitorer sur logfire
+├── pipeline/               # Dossier pour le pipeline
 ├── vector_db/              # Dossier pour l'index FAISS et les chunks
 ├── database/               # Base de données SQLite pour les interactions
 └── utils/                  # Modules utilitaires
@@ -95,6 +99,21 @@ streamlit run MistralChat.py
 
 L'application sera accessible à l'adresse http://localhost:8501 dans votre navigateur.
 
+### 4. Injecter les données SQL to db
+
+```bash
+python -m database.load_excel_to_db
+```
+
+### 5. Injecter des métriques RAGA dans logfire
+
+```bash
+python -m eval.evaluate_ragas
+
+```
+
+### 6. Consultation de l'activité sur logfire
+Logfire sera accessible à l'adresse https://logfire-eu.pydantic.dev/fremontben-prog/chap10llm/ dans votre navigateur.
 
 ## Modules principaux
 
@@ -105,12 +124,11 @@ Gère l'index vectoriel FAISS et la recherche sémantique :
 - Génération des embeddings avec Mistral
 - Création et interrogation de l'index FAISS
 
-### `utils/query_classifier.py`
+### `nba_engine.py`
 
-Détermine si une requête nécessite une recherche RAG :
+Construction des prompts pour Mistral
 - Analyse des mots-clés
-- Classification avec le modèle Mistral
-- Détection des questions spécifiques vs générales
+- Détection des questions statistiques vs générales
 
 ### `utils/database.py`
 
@@ -119,11 +137,17 @@ Gère la base de données SQLite pour les interactions :
 - Stockage des feedbacks utilisateurs
 - Récupération des statistiques
 
+### `sql_tool.py`
+Tool LangChain pour requêtes SQL dynamiques sur la base basketball SQLite.
+
+### `schema.sql`
+Schéma relationnel SQLite adapté au fichier regular_NBA.xlsx
+
+
 ## Personnalisation
 
 Vous pouvez personnaliser l'application en modifiant les paramètres dans `utils/config.py` :
 - Modèles Mistral utilisés
 - Taille des chunks et chevauchement
-- Nombre de documents par défaut
-- Nom de la commune ou organisation
+- clès API
 

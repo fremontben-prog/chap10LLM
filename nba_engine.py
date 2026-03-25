@@ -2,13 +2,11 @@
 nba_engine.py
 -------------
 Moteur métier NBA — logique pure sans Streamlit.
-Importable par MistralChat_updated.py ET evaluate_ragas.py.
+Importable par MistralChat.py ET evaluate_ragas.py.
 
-Contient :
-    - is_statistical_question()  → routage par mots-clés
-    - load_vector_store()        → index FAISS (singleton)
-    - load_agent()               → AgentExecutor LangChain (singleton)
-    - repondre_avec_agent()      → réponse finale (SQL ou RAG)
+Architecture HYBRIDE :
+    Questions statistiques → SQL Tool + RAG FAISS → Mistral synthèse
+    Questions narratives   → RAG FAISS seul       → Mistral synthèse
 """
 
 import os
@@ -38,6 +36,33 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "database", "basketball.db")
+
+SYSTEM_PROMPT_HYBRIDE = """Tu es 'NBA Analyst AI', un assistant expert sur la ligue NBA.
+Tu disposes de deux sources complémentaires pour répondre.
+
+DONNÉES STATISTIQUES (SOURCE PRIORITAIRE — FIABLE) :
+---
+{sql_context}
+---
+
+CONTEXTE DOCUMENTAIRE (SOURCE SECONDAIRE — PEUT ÊTRE IMPRÉCISE) :
+---
+{rag_context}
+---
+
+RÈGLES :
+- Les données statistiques sont la source de vérité pour tous les chiffres
+- Si une valeur chiffrée est présente dans les données statistiques, ignore toute valeur différente dans le contexte documentaire
+- Ne jamais mentionner deux valeurs contradictoires
+- Commence toujours par les chiffres issus des données statistiques
+- Enrichis avec le contexte narratif uniquement si cohérent avec les données
+- Ne mentionne jamais les sources techniques (SQL, FAISS, Excel, base de données)
+- Si une source est vide → utilise uniquement l'autre
+- Ne jamais inventer de données
+- Réponds en français, de façon claire et engageante
+
+QUESTION : {question}
+RÉPONSE :"""
 
 SYSTEM_PROMPT_RAG = """Tu es 'NBA Analyst AI', un assistant expert sur la ligue NBA.
 Ta mission est de répondre aux questions des fans en animant le débat.
@@ -78,36 +103,47 @@ RÈGLES :
 - Si seul le prénom ou nom partiel est fourni → utilise LIKE
   WHERE full_name_normalized LIKE '%giannis%'
 
-4. Exemples
+4. Colonnes disponibles dans v_player_stats
+- Moyennes : pts_avg, reb_avg, oreb_avg, dreb_avg, ast_avg,
+             stl_avg, blk_avg, tov_avg, pf_avg, fp_avg
+- Totaux   : pts, reb, oreb, dreb, ast, stl, blk, tov, pf, fp
+- Tir      : fg_pct, three_pa, three_pct, ftm, fta, ft_pct
+- Avancées : offrtg, defrtg, netrtg, ts_pct, efg_pct,
+             usg_pct, pie, pace, plus_minus, ast_to
+
+5. Exemples
 Question: Combien de points marque Nikola Jokic ?
 SQL:
-SELECT pts FROM season_stats
-JOIN players ON season_stats.player_id = players.player_id
+SELECT full_name, pts, pts_avg, gp
+FROM v_player_stats
+WHERE full_name_normalized = 'nikola jokic';
+
+Question: Combien de rebonds pour Jokic ?
+SQL:
+SELECT full_name, reb, reb_avg, oreb_avg, dreb_avg, gp
+FROM v_player_stats
 WHERE full_name_normalized = 'nikola jokic';
 
 Question: Quel joueur a le plus de points ?
 SQL:
-SELECT full_name, pts FROM season_stats
-JOIN players ON season_stats.player_id = players.player_id
-ORDER BY pts DESC LIMIT 1;
+SELECT full_name, team_code, pts, pts_avg
+FROM v_top_scorers LIMIT 1;
 
 Question: Quel joueur a le meilleur pourcentage à 3 points ?
 SQL:
-SELECT full_name, three_pct FROM season_stats
-JOIN players ON season_stats.player_id = players.player_id
-ORDER BY three_pct DESC LIMIT 1;
+SELECT full_name, team_code, three_pa, three_pct
+FROM v_top_three_point LIMIT 1;
 
 Question: Giannis points
 SQL:
-SELECT pts FROM season_stats
-JOIN players ON season_stats.player_id = players.player_id
+SELECT full_name, pts, pts_avg, gp
+FROM v_player_stats
 WHERE full_name_normalized LIKE '%giannis%';
 
-5. Réponse finale
+6. Réponse finale
 - Toujours reformuler le résultat SQL en français
-- Inclure les chiffres clés
+- Inclure les chiffres clés (moyenne ET total si pertinent)
 - Ne jamais inventer de données
-- Ne jamais utiliser des données Basketball-Reference, Reddit ou d'autres sources externes
 - Si aucune donnée n'est trouvée → dire clairement que l'information n'est pas disponible
 """
 
@@ -116,49 +152,22 @@ WHERE full_name_normalized LIKE '%giannis%';
 # ─────────────────────────────────────────────
 
 STAT_KEYWORDS = [
+    # Mots complets
     "point", "rebond", "passe", "assist", "pourcentage", "%", "tir",
     "moyenne", "classement", "meilleur", "top", "compare", "stats",
     "statistique", "score", "marque", "rating", "netrtg", "offrtg",
     "pie", "triple", "double", "interception", "contre", "blk", "stl",
     "combien", "quel joueur", "quelle équipe", "saison", "match",
     "efficacit", "ratio", "impact", "win", "loss", "victoire", "défaite",
-    "pts", "reb", "ast", "fg%", "3p%", "ft%",
-    "blk", "tov", "min", "gp", "cmb",
-    "avg", "pct", "rtg", "usg", "ts%",
-    "offrtg", "defrtg", "netrtg", "pie",
+    # Abréviations statistiques NBA
+    "pts", "reb", "ast", "fg", "ft", "3p", "tov", "cmb",
+    "avg", "pct", "rtg", "usg", "ts", "gp", "min",
 ]
 
 def is_statistical_question(question: str) -> bool:
     q = question.lower()
     return any(kw in q for kw in STAT_KEYWORDS)
 
-# ─────────────────────────────────────────────
-# Détection des nicknames des joueurs
-# ─────────────────────────────────────────────
-
-NBA_NICKNAMES = {
-    "sga":      "Shai Gilgeous-Alexander",
-    "lebron":   "LeBron James",
-    "ad":       "Anthony Davis",
-    "pg":       "Paul George",
-    "kd":       "Kevin Durant",
-    "cp3":      "Chris Paul",
-    "luka":     "Luka Doncic",
-    "giannis":  "Giannis Antetokounmpo",
-    "jokic":    "Nikola Jokic",
-    "embiid":   "Joel Embiid",
-    "steph":    "Stephen Curry",
-    "tatum":    "Jayson Tatum",
-    "ja":       "Ja Morant",
-}
-
-def resolve_nicknames(question: str) -> str:
-    """Remplace les surnoms par les vrais noms avant envoi au LLM."""
-    q = question.lower()
-    for nickname, full_name in NBA_NICKNAMES.items():
-        if nickname in q.split():  # mot entier uniquement
-            question = question.lower().replace(nickname, full_name)
-    return question
 
 # ─────────────────────────────────────────────
 # Singletons — lru_cache remplace st.cache_resource
@@ -177,7 +186,7 @@ def load_vector_store() -> VectorStoreManager:
 @lru_cache(maxsize=1)
 def load_agent() -> AgentExecutor:
     """Crée l'AgentExecutor LangChain avec SQL Tool."""
-    llm   = ChatMistralAI(mistral_api_key=MISTRAL_API_KEY, model=MODEL_NAME, temperature=0.1)
+    llm   = ChatMistralAI(mistral_api_key=MISTRAL_API_KEY, model=MODEL_NAME, temperature=0.0)
     tools = [get_sql_tool(db_path=DB_PATH)]
 
     prompt = ChatPromptTemplate.from_messages([
@@ -193,50 +202,96 @@ def load_agent() -> AgentExecutor:
 
 
 # ─────────────────────────────────────────────
-# Fonction principale — même logique que l'app
+# Moteur hybride SQL + RAG
 # ─────────────────────────────────────────────
+
+def _get_sql_context(question: str) -> str:
+    """Interroge le SQL Tool — retourne les données brutes."""
+    try:
+        agent_executor = load_agent()
+        result = agent_executor.invoke({"input": question})
+        sql_context = result["output"]
+        # FIX CRITIQUE : forcer string
+        if not isinstance(sql_context, str):
+            logger.warning(f"SQL output non-string détecté: {type(sql_context)}")
+            sql_context = str(sql_context)
+        logger.info(f"  SQL ✓ : {sql_context[:80]}")
+        return sql_context
+    except Exception as e:
+        logger.error(f"  SQL erreur : {e}")
+        return ""
+
+
+def _get_rag_context(question: str) -> tuple[str, list[str]]:
+    """
+    Interroge FAISS — retourne (texte formaté, liste de chunks).
+    Le texte formaté est pour Mistral, la liste pour RAGAS.
+    """
+    vector_store = load_vector_store()
+    if vector_store.index is None:
+        return "", []
+    try:
+        results = vector_store.search(question, k=SEARCH_K)
+        if not results:
+            return "", []
+        chunks = [r["text"] for r in results]
+        context_str = "\n\n".join([
+            f"Source: {r['metadata'].get('source', 'Inconnue')}\n{r['text']}"
+            for r in results
+        ])
+        logger.info(f"  RAG ✓ : {len(results)} chunks")
+        return context_str, chunks
+    except Exception as e:
+        logger.error(f"  RAG erreur : {e}")
+        return "", []
+
 
 def repondre_avec_agent(question: str) -> str:
     """
-    Route vers SQL Tool ou RAG selon la nature de la question.
-    Utilisable par Streamlit ET evaluate_ragas.py.
+    Architecture hybride :
+    - Questions statistiques → SQL + RAG → synthèse Mistral
+    - Questions narratives   → RAG seul  → synthèse Mistral
     """
-    agent_executor = load_agent()
-    vector_store   = load_vector_store()
-    
-    # Résoudre les surnoms avant routage
-    question = resolve_nicknames(question)
-    logger.info(f"Question normalisée : {question}")
+    client = Mistral(api_key=MISTRAL_API_KEY)
 
     if is_statistical_question(question):
-        # ── Voie 1 : Agent SQL ───────────────────────────────
-        logger.info(f"→ Route SQL : {question[:60]}")
+        # ── Hybride SQL + RAG ────────────────────────────
+        logger.info(f"→ Route HYBRIDE : {question[:60]}")
+
+        sql_context          = _get_sql_context(question)
+        rag_context_str, _   = _get_rag_context(question)
+
+        if not sql_context and not rag_context_str:
+            return "Désolé, aucune information disponible pour cette question."
+
         try:
-            result = agent_executor.invoke({"input": question})
-            return result["output"]
+            response = client.chat.complete(
+                model=MODEL_NAME,
+                messages=[{"role": "user", "content": SYSTEM_PROMPT_HYBRIDE.format(
+                    sql_context=sql_context or "Aucune donnée statistique disponible.",
+                    rag_context=rag_context_str or "Aucun contexte documentaire disponible.",
+                    question=question,
+                )}],
+                temperature=0.1,
+            )
+            return response.choices[0].message.content
         except Exception as e:
-            logger.error(f"Erreur agent SQL : {e}")
-            return f"Désolé, je n'ai pas pu récupérer les statistiques : {e}"
+            logger.error(f"Erreur synthèse hybride : {e}")
+            return sql_context or "Erreur lors de la synthèse."
 
     else:
-        # ── Voie 2 : RAG FAISS ───────────────────────────────
+        # ── RAG seul ─────────────────────────────────────
         logger.info(f"→ Route RAG : {question[:60]}")
-        if vector_store.index is None:
+        rag_context_str, _ = _get_rag_context(question)
+
+        if not rag_context_str:
             return "L'index documentaire n'est pas disponible. Lance d'abord : python indexer.py"
 
         try:
-            results     = vector_store.search(question, k=SEARCH_K)
-            context_str = "\n\n---\n\n".join([
-                f"Source: {r['metadata'].get('source', 'Inconnue')} "
-                f"(Score: {r['score']:.1f}%)\nContenu: {r['text']}"
-                for r in results
-            ]) if results else "Aucune information pertinente trouvée."
-
-            client   = Mistral(api_key=MISTRAL_API_KEY)
             response = client.chat.complete(
                 model=MODEL_NAME,
                 messages=[{"role": "user", "content": SYSTEM_PROMPT_RAG.format(
-                    context_str=context_str,
+                    context_str=rag_context_str,
                     question=question,
                 )}],
                 temperature=0.1,
@@ -245,3 +300,65 @@ def repondre_avec_agent(question: str) -> str:
         except Exception as e:
             logger.error(f"Erreur RAG : {e}")
             return f"Désolé, une erreur est survenue : {e}"
+
+
+def repondre_avec_contextes(question: str) -> tuple[str, list[str]]:
+    """
+    Variante pour evaluate_ragas.py — retourne (réponse, contextes).
+    Les contextes contiennent SQL + chunks RAG pour RAGAS.
+    """
+    client = Mistral(api_key=MISTRAL_API_KEY)
+
+    if is_statistical_question(question):
+        logger.info(f"→ Route HYBRIDE (RAGAS) : {question[:60]}")
+
+        sql_context              = _get_sql_context(question)
+        rag_context_str, chunks  = _get_rag_context(question)
+
+        # Contextes pour RAGAS = SQL + chunks RAG
+        contexts = []
+        if sql_context:
+            contexts.append(f"[SQL PRIORITAIRE]\n{str(sql_context)}")
+
+        for chunk in chunks:
+            contexts.append(f"[RAG]\n{str(chunk)}")
+        
+
+        if not sql_context and not rag_context_str:
+            return "Aucune information disponible.", []
+
+        try:
+            response = client.chat.complete(
+                model=MODEL_NAME,
+                messages=[{"role": "user", "content": SYSTEM_PROMPT_HYBRIDE.format(
+                    sql_context=sql_context or "Aucune donnée statistique disponible.",
+                    rag_context=rag_context_str or "Aucun contexte documentaire disponible.",
+                    question=question,
+                )}],
+                temperature=0.1,
+            )
+            return response.choices[0].message.content, contexts
+        except Exception as e:
+            logger.error(f"Erreur synthèse hybride : {e}")
+            return sql_context or "Erreur.", contexts
+
+    else:
+        logger.info(f"→ Route RAG (RAGAS) : {question[:60]}")
+        rag_context_str, chunks = _get_rag_context(question)
+
+        if not rag_context_str:
+            return "Index non disponible.", []
+
+        try:
+            response = client.chat.complete(
+                model=MODEL_NAME,
+                messages=[{"role": "user", "content": SYSTEM_PROMPT_RAG.format(
+                    context_str=rag_context_str,
+                    question=question,
+                )}],
+                temperature=0.1,
+            )
+            return response.choices[0].message.content, chunks
+        except Exception as e:
+            logger.error(f"Erreur RAG : {e}")
+            return f"Erreur : {e}", []

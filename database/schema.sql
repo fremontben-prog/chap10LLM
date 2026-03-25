@@ -72,18 +72,6 @@ CREATE TABLE IF NOT EXISTS season_stats (
     UNIQUE(player_id, season)
 );
 
--- ── Table reports ───────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS reports (
-    report_id   INTEGER PRIMARY KEY AUTOINCREMENT,
-    report_type TEXT    NOT NULL,
-    player_id   INTEGER REFERENCES players(player_id),
-    team_code   TEXT    REFERENCES teams(team_code),
-    title       TEXT    NOT NULL,
-    content     TEXT    NOT NULL,
-    season      TEXT,
-    source_file TEXT,
-    created_at  TEXT    DEFAULT (datetime('now'))
-);
 
 -- ── Index ────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_season_stats_player ON season_stats(player_id);

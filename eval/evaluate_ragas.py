@@ -1,19 +1,12 @@
 """
 evaluate_ragas.py
 -----------------
-Évalue la qualité de la chaîne RAG sur des questions métier basketball
+Évalue la qualité de la chaîne RAG+SQL sur des questions métier basketball
 en utilisant le framework RAGAS.
 
-Branché sur le vrai moteur RAG de MistralChat.py :
-    - VectorStoreManager  pour la recherche FAISS
-    - Mistral             pour la génération de réponses
-    - log_evaluation_metrics() pour envoyer les scores dans Logfire
-
-Métriques RAGAS :
-    - Faithfulness       → LLM only (Mistral via LangchainLLMWrapper)
-    - AnswerRelevancy    → ragas 0.4.x + Mistral + LangchainLLMWrapper ne supporte pas cette métrique sans OpenAI.
-    - ContextPrecision   → LLM only
-    - ContextRecall      → LLM only
+Branché sur le vrai moteur nba_engine.py :
+    - repondre_avec_contextes() → même moteur hybride que l'app
+    - SQL Tool + RAG FAISS → contextes complets pour RAGAS
 """
 
 import os
@@ -29,20 +22,16 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pydantic import BaseModel, Field
 from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics import Faithfulness, ContextPrecision, ContextRecall
+from ragas.metrics import Faithfulness, AnswerRelevancy, ContextPrecision, ContextRecall
 from ragas.llms import LangchainLLMWrapper
 from ragas.embeddings import HuggingFaceEmbeddings
 from langchain_mistralai import ChatMistralAI
 
 import pandas as pd
 from dotenv import load_dotenv
-from mistralai import Mistral
 
 from utils.config import MISTRAL_API_KEY, MODEL_NAME, SEARCH_K
-from utils.vector_store import VectorStoreManager
-from monitoring.logfire_tracer import log_evaluation_metrics
-
-from nba_engine import repondre_avec_agent, is_statistical_question
+from nba_engine import repondre_avec_contextes, is_statistical_question
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -69,109 +58,127 @@ class TestCase(BaseModel):
 
 TEST_CASES: List[TestCase] = [
 
-     # --- SIMPLES ---
+    # --- SIMPLES ---
     TestCase(
         id="S01", category="SIMPLE",
-        question="Combien de points au total sur la saison 2014-2025 a marqué Shai Gilgeous-Alexander ?",
-        ground_truth="Shai Gilgeous-Alexander a marqué 2485 points.",
-        notes="Stat directe depuis colonne PTS",
+        question="Combien de points par match marque Shai Gilgeous-Alexander ?",
+        ground_truth=(
+            "Shai Gilgeous-Alexander marque 32.7 points par match cette saison, "
+            "pour un total de 2485 points en 76 matchs."
+        ),
+        notes="Source : SQL v_top_scorers — pts_avg",
     ),
     TestCase(
         id="S02", category="SIMPLE",
-        question="Quel est le pourcentage à 3 points de Nikola Jokic ?",
-        ground_truth="Nikola Jokic a un pourcentage à 3 points de 41.7%.",
-        notes="Stat directe colonne 3P%",
+        question="Quel joueur a le meilleur pourcentage à 3 points cette saison ?",
+        ground_truth=(
+            "Le joueur avec le meilleur pourcentage à 3 points cette saison est "
+            "Seth Curry (CHA) avec 45.6% sur 184 tentatives."
+        ),
+        notes="Source : SQL v_top_three_point",
     ),
     TestCase(
         id="S03", category="SIMPLE",
-        question="Combien de rebonds au total Nikola Jokic a-t-il pris ?",
-        ground_truth="Nikola Jokic a pris 889 rebonds.",
-        notes="Stat directe colonne REB",
+        question="Quel est le pourcentage à 3 points de Nikola Jokic ?",
+        ground_truth=(
+            "Nikola Jokic a un pourcentage à 3 points de 41.7% cette saison."
+        ),
+        notes="Source : SQL v_player_stats — three_pct",
     ),
 
     # --- COMPLEXES ---
     TestCase(
         id="C01", category="COMPLEX",
-        question="Quel joueur a marqué le plus de points ?",
-        ground_truth="Le joueur qui a marqué le plus de points en moyenne cette saison 2024-2025 est Shai Gilgeous-Alexander avec une moyenne de 32,7 points par match.",
-        notes="Max sur PTS et moyenne PTS",
+        question="Quel joueur a marqué le plus de points cette saison ?",
+        ground_truth=(
+            "Shai Gilgeous-Alexander (OKC) est le meilleur scoreur de la saison 2024-2025 "
+            "avec 2485 points au total, soit 32.7 points par match."
+        ),
+        notes="Source : SQL v_top_scorers — pts_avg DESC",
     ),
     TestCase(
         id="C02", category="COMPLEX",
-        question="Quels sont les 3 meilleurs scoreurs par match?",
+        question="Compare les statistiques de LeBron James et Nikola Jokic cette saison.",
         ground_truth=(
-            "Shai Gilgeous-Alexander (OKC) : 32,7 points par match, Giannis Antetokounmpo (MIL) : 30,4 points par match, Nikola Jokić (DEN) : 29,6 points par match"
+            "LeBron James et Nikola Jokic sont deux des meilleurs joueurs cette saison. "
+            "Jokic affiche 29.6 points, 12.5 rebonds et 10.0 passes par match. "
+            "LeBron James affiche environ 24 points, 8 rebonds et 8 passes par match."
         ),
-        notes="Top 3 PTS",
+        notes="Source : SQL v_player_stats — comparaison deux joueurs",
     ),
     TestCase(
         id="C03", category="COMPLEX",
-        question="Quel joueur a le meilleur pourcentage à 3 points ?",
-        ground_truth="Le joueur avec le meilleur pourcentage à 3 points en saison 2024-2025 est Seth Curry (Charlotte Hornets) avec un pourcentage de 45,6%",
-        notes="Max 3P%",
+        question="Quelle équipe a le meilleur Net Rating cette saison ?",
+        ground_truth=(
+            "L'équipe avec le meilleur Net Rating cette saison est "
+            "Oklahoma City Thunder (OKC)."
+        ),
+        notes="Source : SQL v_team_stats — avg_netrtg DESC",
     ),
     TestCase(
         id="C04", category="COMPLEX",
-        question="Quel joueur a le plus de passes décisives en moyenne ?",
-        ground_truth="Le joueur avec le plus de passes décisives en moyenne par match pour la saison 2024-2025 est Trae Young (Atlanta Hawks) avec 11,6 passes décisives par match.",
-        notes="Max AST",
+        question="Qui a le plus de triple-doubles cette saison ?",
+        ground_truth=(
+            "Nikola Jokic est le joueur avec le plus de triple-doubles cette saison."
+        ),
+        notes="Source : SQL v_player_stats — td3 DESC",
     ),
 
-    # --- NOISY ---
+    # --- BRUITÉS ---
     TestCase(
         id="N01", category="NOISY",
         question="sga cmb de pts",
-        ground_truth="Shai Gilgeous-Alexander (SGA) a marqué 2 485 points lors de la saison régulière.",
-        notes="Abréviation + SMS",
+        ground_truth=(
+            "Shai Gilgeous-Alexander marque 32.7 points par match "
+            "pour un total de 2485 points cette saison."
+        ),
+        notes="Abréviation SGA + cmb — source SQL",
     ),
     TestCase(
         id="N02", category="NOISY",
         question="c ki le meilleur scoreur",
-        ground_truth="Le meilleur scoreur de la saison NBA 2024-2025 est **Shai Gilgeous-Alexander** (OKC) avec une moyenne de 32,7 points par match.",
-        notes="Question vague",
+        ground_truth=(
+            "Le meilleur scoreur cette saison est Shai Gilgeous-Alexander (OKC) "
+            "avec 32.7 points par match."
+        ),
+        notes="Langage SMS — source SQL",
     ),
     TestCase(
         id="N03", category="NOISY",
         question="jokic cmb de reb",
-        ground_truth="Nikola Jokić a une moyenne de 12,8 rebonds combinés",
-        notes="Fautes + oral",
+        ground_truth=(
+            "Nikola Jokic a une moyenne de 12.5 rebonds par match cette saison, "
+            "dont 3.1 offensifs et 9.4 défensifs."
+        ),
+        notes="Abréviation + oral — source SQL oreb_avg dreb_avg",
     ),
 ]
 
 
 # ─────────────────────────────────────────────
-# Connexion au vrai moteur RAG
+# Connexion au vrai moteur hybride
 # ─────────────────────────────────────────────
 
 def load_answers_and_contexts(test_cases: List[TestCase]) -> List[TestCase]:
     """
-    Utilise le vrai moteur de nba_engine.py :
-        - is_statistical_question() → même routage que l'app
-        - repondre_avec_agent()     → même réponse que l'app
+    Utilise le moteur hybride de nba_engine.py :
+        - Questions statistiques → SQL + RAG FAISS
+        - Questions narratives   → RAG FAISS seul
+    Retourne réponse ET contextes pour RAGAS.
     """
-    logger.info("Chargement via nba_engine (même moteur que l'app)...")
-    vector_store = VectorStoreManager()
+    logger.info("Chargement via nba_engine (mode hybride SQL + RAG)...")
 
     for tc in test_cases:
         logger.info(f"Traitement {tc.id} : {tc.question[:60]}...")
         try:
-            # Même réponse que l'app réelle
-            tc.answer = repondre_avec_agent(tc.question)
-
-            # Contexte selon la route utilisée
-            if is_statistical_question(tc.question):
-                # SQL Tool → la réponse SQL est le contexte
-                tc.contexts = [tc.answer]
-            else:
-                # RAG FAISS → vrais chunks récupérés
-                results = vector_store.search(tc.question, k=SEARCH_K)
-                tc.contexts = [r["text"] for r in results]
-
-            logger.info(f"  ✓ ({len(tc.answer)} caractères)")
-
+            tc.answer, tc.contexts = repondre_avec_contextes(tc.question)
+            logger.info(
+                f"  ✓ réponse={len(tc.answer)} chars, "
+                f"contextes={len(tc.contexts)}"
+            )
         except Exception as e:
             logger.error(f"Erreur cas {tc.id} : {e}")
-            tc.answer = ""
+            tc.answer   = ""
             tc.contexts = []
 
     return test_cases
@@ -208,40 +215,40 @@ def build_results_table(
             "Question":         tc.question[:80] + "..." if len(tc.question) > 80 else tc.question,
             "Notes":            tc.notes,
             "Faithfulness":     round(float(row.get("faithfulness",     0) or 0), 3),
+            "Answer Relevancy": round(float(row.get("answer_relevancy", 0) or 0), 3),
             "Context Precision":round(float(row.get("context_precision",0) or 0), 3),
             "Context Recall":   round(float(row.get("context_recall",   0) or 0), 3),
-            "Source": "SQL" if is_statistical_question(tc.question) else "RAG",
         })
     df = pd.DataFrame(records)
     df["Score Moyen"] = df[[
-        "Faithfulness", 
+        "Faithfulness", "Answer Relevancy",
         "Context Precision", "Context Recall",
     ]].mean(axis=1).round(3)
     return df.sort_values(["Catégorie", "ID"])
 
 
 def print_summary(df: pd.DataFrame) -> None:
-    print("\n" + "=" * 100)
+    print("\n" + "=" * 110)
     print("TABLEAU COMPARATIF DES SCORES RAGAS PAR CATÉGORIE")
-    print("=" * 100)
+    print("=" * 110)
     for cat, label in [("SIMPLE", "🟢 Simples"), ("COMPLEX", "🟡 Complexes"), ("NOISY", "🔴 Bruités")]:
         subset = df[df["Catégorie"] == cat]
         if subset.empty:
             continue
         print(f"\n{label}")
         print(subset[[
-            "ID", "Question", "Faithfulness",
+            "ID", "Question", "Faithfulness", "Answer Relevancy",
             "Context Precision", "Context Recall", "Score Moyen"
         ]].to_string(index=False))
-    print("\n" + "-" * 100)
+    print("\n" + "-" * 110)
     print("MOYENNES GLOBALES PAR CATÉGORIE")
-    print("-" * 100)
+    print("-" * 110)
     summary = df.groupby("Catégorie")[[
-        "Faithfulness", 
+        "Faithfulness", "Answer Relevancy",
         "Context Precision", "Context Recall", "Score Moyen"
     ]].mean().round(3)
     print(summary.to_string())
-    print("=" * 100 + "\n")
+    print("=" * 110 + "\n")
 
 
 # ─────────────────────────────────────────────
@@ -252,7 +259,7 @@ def run_evaluation(output_dir: str = "eval/results") -> pd.DataFrame:
     os.makedirs(output_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # 1. Réponses + contextes via le vrai RAG
+    # 1. Réponses + contextes via le moteur hybride
     test_cases = load_answers_and_contexts(TEST_CASES)
 
     # 2. Dataset RAGAS
@@ -267,25 +274,22 @@ def run_evaluation(output_dir: str = "eval/results") -> pd.DataFrame:
     )
 
     # 4. Embeddings HuggingFace locaux pour AnswerRelevancy
-    #    Premier lancement : télécharge ~90MB (sentence-transformers/all-MiniLM-L6-v2)
     logger.info("Chargement des embeddings HuggingFace (all-MiniLM-L6-v2)...")
-    
     ragas_embeddings = HuggingFaceEmbeddings(
         model="sentence-transformers/all-MiniLM-L6-v2"
     )
-    # 5. Métriques — ragas.metrics (compatible LangchainLLMWrapper)
+
+    # 5. Métriques
     metrics = [
         Faithfulness(llm=ragas_llm),
+        AnswerRelevancy(llm=ragas_llm, embeddings=ragas_embeddings),
         ContextPrecision(llm=ragas_llm),
         ContextRecall(llm=ragas_llm),
     ]
 
     # 6. Évaluation RAGAS
     logger.info("Évaluation RAGAS en cours...")
-    ragas_scores = evaluate(
-        dataset=dataset,
-        metrics=metrics,
-    )
+    ragas_scores = evaluate(dataset=dataset, metrics=metrics)
 
     # 7. Tableau comparatif
     df = build_results_table(valid_cases, ragas_scores)
@@ -299,6 +303,7 @@ def run_evaluation(output_dir: str = "eval/results") -> pd.DataFrame:
     logger.info(f"Résultats sauvegardés : {csv_path}")
 
     # 9. Envoi Logfire
+    from monitoring.logfire_tracer import log_evaluation_metrics
     log_evaluation_metrics(df)
     logger.info("Métriques envoyées dans Logfire.")
 
