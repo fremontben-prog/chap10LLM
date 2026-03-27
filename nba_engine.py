@@ -262,7 +262,7 @@ def repondre_avec_agent(question: str) -> str:
         rag_context_str, _   = _get_rag_context(question)
 
         if not sql_context and not rag_context_str:
-            return "Désolé, aucune information disponible pour cette question."
+            return "Désolé, aucune information disponible pour cette question." , "HYBRIDE"
 
         try:
             response = client.chat.complete(
@@ -274,7 +274,7 @@ def repondre_avec_agent(question: str) -> str:
                 )}],
                 temperature=0.1,
             )
-            return response.choices[0].message.content
+            return response.choices[0].message.content , "HYBRIDE"
         except Exception as e:
             logger.error(f"Erreur synthèse hybride : {e}")
             return sql_context or "Erreur lors de la synthèse."
@@ -296,10 +296,10 @@ def repondre_avec_agent(question: str) -> str:
                 )}],
                 temperature=0.1,
             )
-            return response.choices[0].message.content
+            return response.choices[0].message.content , "RAG"
         except Exception as e:
             logger.error(f"Erreur RAG : {e}")
-            return f"Désolé, une erreur est survenue : {e}"
+            return f"Désolé, une erreur est survenue : {e}" , "RAG"
 
 
 def repondre_avec_contextes(question: str) -> tuple[str, list[str]]:

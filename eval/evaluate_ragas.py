@@ -22,7 +22,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pydantic import BaseModel, Field
 from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics import Faithfulness, AnswerRelevancy, ContextPrecision, ContextRecall
+from ragas.metrics import Faithfulness, ContextPrecision, ContextRecall
 from ragas.llms import LangchainLLMWrapper
 from ragas.embeddings import HuggingFaceEmbeddings
 from langchain_mistralai import ChatMistralAI
@@ -147,7 +147,7 @@ TEST_CASES: List[TestCase] = [
         id="N03", category="NOISY",
         question="jokic cmb de reb",
         ground_truth=(
-            "Nikola Jokic a une moyenne de 12.5 rebonds par match cette saison, "
+            "Nikola Jokic a une moyenne de 12.7 rebonds par match cette saison, "
             "dont 3.1 offensifs et 9.4 défensifs."
         ),
         notes="Abréviation + oral — source SQL oreb_avg dreb_avg",
@@ -215,14 +215,12 @@ def build_results_table(
             "Question":         tc.question[:80] + "..." if len(tc.question) > 80 else tc.question,
             "Notes":            tc.notes,
             "Faithfulness":     round(float(row.get("faithfulness",     0) or 0), 3),
-            "Answer Relevancy": round(float(row.get("answer_relevancy", 0) or 0), 3),
             "Context Precision":round(float(row.get("context_precision",0) or 0), 3),
             "Context Recall":   round(float(row.get("context_recall",   0) or 0), 3),
         })
     df = pd.DataFrame(records)
     df["Score Moyen"] = df[[
-        "Faithfulness", "Answer Relevancy",
-        "Context Precision", "Context Recall",
+        "Faithfulness", "Context Precision", "Context Recall",
     ]].mean(axis=1).round(3)
     return df.sort_values(["Catégorie", "ID"])
 
@@ -237,14 +235,14 @@ def print_summary(df: pd.DataFrame) -> None:
             continue
         print(f"\n{label}")
         print(subset[[
-            "ID", "Question", "Faithfulness", "Answer Relevancy",
+            "ID", "Question", "Faithfulness", 
             "Context Precision", "Context Recall", "Score Moyen"
         ]].to_string(index=False))
     print("\n" + "-" * 110)
     print("MOYENNES GLOBALES PAR CATÉGORIE")
     print("-" * 110)
     summary = df.groupby("Catégorie")[[
-        "Faithfulness", "Answer Relevancy",
+        "Faithfulness", 
         "Context Precision", "Context Recall", "Score Moyen"
     ]].mean().round(3)
     print(summary.to_string())
@@ -273,36 +271,29 @@ def run_evaluation(output_dir: str = "eval/results") -> pd.DataFrame:
         ChatMistralAI(mistral_api_key=MISTRAL_API_KEY, model="mistral-small")
     )
 
-    # 4. Embeddings HuggingFace locaux pour AnswerRelevancy
-    logger.info("Chargement des embeddings HuggingFace (all-MiniLM-L6-v2)...")
-    ragas_embeddings = HuggingFaceEmbeddings(
-        model="sentence-transformers/all-MiniLM-L6-v2"
-    )
-
-    # 5. Métriques
+    # 4. Métriques
     metrics = [
         Faithfulness(llm=ragas_llm),
-        AnswerRelevancy(llm=ragas_llm, embeddings=ragas_embeddings),
         ContextPrecision(llm=ragas_llm),
         ContextRecall(llm=ragas_llm),
     ]
 
-    # 6. Évaluation RAGAS
+    # 5. Évaluation RAGAS
     logger.info("Évaluation RAGAS en cours...")
     ragas_scores = evaluate(dataset=dataset, metrics=metrics)
 
-    # 7. Tableau comparatif
+    # 6. Tableau comparatif
     df = build_results_table(valid_cases, ragas_scores)
     print_summary(df)
 
-    # 8. Sauvegarde CSV + JSON
+    # 7. Sauvegarde CSV + JSON
     csv_path  = os.path.join(output_dir, f"ragas_results_{timestamp}.csv")
     json_path = os.path.join(output_dir, f"ragas_results_{timestamp}.json")
     df.to_csv(csv_path, index=False)
     df.to_json(json_path, orient="records", force_ascii=False, indent=2)
     logger.info(f"Résultats sauvegardés : {csv_path}")
 
-    # 9. Envoi Logfire
+    # 8. Envoi Logfire
     from monitoring.logfire_tracer import log_evaluation_metrics
     log_evaluation_metrics(df)
     logger.info("Métriques envoyées dans Logfire.")

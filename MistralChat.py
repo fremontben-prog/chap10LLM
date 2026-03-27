@@ -1,5 +1,5 @@
 """
-MistralChat_updated.py
+MistralChat.py
 ----------------------
 Application Streamlit NBA Analyst AI.
 La logique métier est dans nba_engine.py — ce fichier gère uniquement l'UI.
@@ -99,12 +99,13 @@ def main():
         with st.chat_message("user"):
             st.markdown(q)
 
-        route = "🗄️ SQL" if is_statistical_question(q) else "📚 RAG"
-        with st.chat_message("assistant"):
-            with st.spinner(f"Analyse en cours... [{route}]"):
-                reponse = repondre_avec_agent(q)
+        # route = "🗄️ SQL" if is_statistical_question(q) else "📚 RAG"
+        with st.chat_message("assistant"):      
+            with st.spinner("Analyse en cours..."):
+                reponse, route = repondre_avec_agent(q)
+            labels = {"HYBRIDE": "🗄️ SQL + 📚 RAG", "RAG": "📚 RAG"}
             st.markdown(reponse)
-            st.caption(f"Route utilisée : {route}")
+            st.caption(f"Route utilisée : {labels[route]}")
 
         st.session_state.messages.append({"role": "assistant", "content": reponse})
 
