@@ -1,0 +1,11 @@
+ID,Catégorie,Question,Notes,Faithfulness,Context Precision,Context Recall,Source,Score Moyen
+C01,COMPLEX,Quel joueur a marqué le plus de points ?,Max sur PTS et moyenne PTS,1.0,1.0,1.0,SQL,1.0
+C02,COMPLEX,Quels sont les 3 meilleurs scoreurs par match?,Top 3 PTS,1.0,1.0,1.0,SQL,1.0
+C03,COMPLEX,Quel joueur a le meilleur pourcentage à 3 points ?,Max 3P%,1.0,1.0,1.0,SQL,1.0
+C04,COMPLEX,Quel joueur a le plus de passes décisives en moyenne ?,Max AST,1.0,1.0,1.0,SQL,1.0
+N01,NOISY,sga cmb de pts,Abréviation + SMS,1.0,0.0,0.0,SQL,0.333
+N02,NOISY,c ki le meilleur scoreur,Question vague,1.0,1.0,1.0,SQL,1.0
+N03,NOISY,jokic cmb de reb,Fautes + oral,1.0,1.0,1.0,SQL,1.0
+S01,SIMPLE,Combien de points au total sur la saison 2014-2025 a marqué Shai Gilgeous-Alexan...,Stat directe depuis colonne PTS,1.0,1.0,1.0,SQL,1.0
+S02,SIMPLE,Quel est le pourcentage à 3 points de Nikola Jokic ?,Stat directe colonne 3P%,1.0,1.0,1.0,SQL,1.0
+S03,SIMPLE,Combien de rebonds au total Nikola Jokic a-t-il pris ?,Stat directe colonne REB,1.0,1.0,1.0,SQL,1.0

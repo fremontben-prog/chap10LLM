@@ -1,0 +1,102 @@
+[
+  {
+    "ID":"C01",
+    "Catégorie":"COMPLEX",
+    "Question":"Quel joueur a marqué le plus de points cette saison ?",
+    "Notes":"Source : SQL v_top_scorers — pts_avg DESC",
+    "Faithfulness":1.0,
+    "Context Precision":0.5,
+    "Context Recall":1.0,
+    "Score Moyen":0.833
+  },
+  {
+    "ID":"C02",
+    "Catégorie":"COMPLEX",
+    "Question":"Compare les statistiques de LeBron James et Nikola Jokic cette saison.",
+    "Notes":"Source : SQL v_player_stats — comparaison deux joueurs",
+    "Faithfulness":0.362,
+    "Context Precision":0.0,
+    "Context Recall":0.333,
+    "Score Moyen":0.232
+  },
+  {
+    "ID":"C03",
+    "Catégorie":"COMPLEX",
+    "Question":"Quelle équipe a le meilleur Net Rating cette saison ?",
+    "Notes":"Source : SQL v_team_stats — avg_netrtg DESC",
+    "Faithfulness":0.0,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Score Moyen":0.0
+  },
+  {
+    "ID":"C04",
+    "Catégorie":"COMPLEX",
+    "Question":"Qui a le plus de triple-doubles cette saison ?",
+    "Notes":"Source : SQL v_player_stats — td3 DESC",
+    "Faithfulness":0.0,
+    "Context Precision":0.333,
+    "Context Recall":0.0,
+    "Score Moyen":0.111
+  },
+  {
+    "ID":"N01",
+    "Catégorie":"NOISY",
+    "Question":"sga cmb de pts",
+    "Notes":"Abréviation SGA + cmb — source SQL",
+    "Faithfulness":1.0,
+    "Context Precision":0.45,
+    "Context Recall":0.0,
+    "Score Moyen":0.483
+  },
+  {
+    "ID":"N02",
+    "Catégorie":"NOISY",
+    "Question":"c ki le meilleur scoreur",
+    "Notes":"Langage SMS — source SQL",
+    "Faithfulness":0.667,
+    "Context Precision":0.125,
+    "Context Recall":0.0,
+    "Score Moyen":0.264
+  },
+  {
+    "ID":"N03",
+    "Catégorie":"NOISY",
+    "Question":"jokic cmb de reb",
+    "Notes":"Abréviation + oral — source SQL oreb_avg dreb_avg",
+    "Faithfulness":0.0,
+    "Context Precision":0.2,
+    "Context Recall":0.0,
+    "Score Moyen":0.067
+  },
+  {
+    "ID":"S01",
+    "Catégorie":"SIMPLE",
+    "Question":"Combien de points par match marque Shai Gilgeous-Alexander ?",
+    "Notes":"Source : SQL v_top_scorers — pts_avg",
+    "Faithfulness":0.0,
+    "Context Precision":0.375,
+    "Context Recall":1.0,
+    "Score Moyen":0.458
+  },
+  {
+    "ID":"S02",
+    "Catégorie":"SIMPLE",
+    "Question":"Quel joueur a le meilleur pourcentage à 3 points cette saison ?",
+    "Notes":"Source : SQL v_top_three_point",
+    "Faithfulness":0.0,
+    "Context Precision":0.5,
+    "Context Recall":0.0,
+    "Score Moyen":0.167
+  },
+  {
+    "ID":"S03",
+    "Catégorie":"SIMPLE",
+    "Question":"Quel est le pourcentage à 3 points de Nikola Jokic ?",
+    "Notes":"Source : SQL v_player_stats — three_pct",
+    "Faithfulness":0.75,
+    "Context Precision":0.167,
+    "Context Recall":0.0,
+    "Score Moyen":0.306
+  }
+]

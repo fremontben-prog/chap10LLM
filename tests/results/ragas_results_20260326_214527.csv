@@ -1,0 +1,11 @@
+ID,Catégorie,Question,Notes,Faithfulness,Answer Relevancy,Context Precision,Context Recall,Score Moyen
+C01,COMPLEX,Quel joueur a marqué le plus de points cette saison ?,Source : SQL v_top_scorers — pts_avg DESC,0.778,,0.5,0.0,0.426
+C02,COMPLEX,Compare les statistiques de LeBron James et Nikola Jokic cette saison.,Source : SQL v_player_stats — comparaison deux joueurs,0.15,,0.0,0.0,0.05
+C03,COMPLEX,Quelle équipe a le meilleur Net Rating cette saison ?,Source : SQL v_team_stats — avg_netrtg DESC,0.5,,0.0,0.0,0.167
+C04,COMPLEX,Qui a le plus de triple-doubles cette saison ?,Source : SQL v_player_stats — td3 DESC,0.0,,0.0,0.0,0.0
+N01,NOISY,sga cmb de pts,Abréviation SGA + cmb — source SQL,1.0,,0.45,0.0,0.483
+N02,NOISY,c ki le meilleur scoreur,Langage SMS — source SQL,0.0,,0.0,0.0,0.0
+N03,NOISY,jokic cmb de reb,Abréviation + oral — source SQL oreb_avg dreb_avg,0.0,,0.2,0.0,0.067
+S01,SIMPLE,Combien de points par match marque Shai Gilgeous-Alexander ?,Source : SQL v_top_scorers — pts_avg,0.667,,0.5,0.0,0.389
+S02,SIMPLE,Quel joueur a le meilleur pourcentage à 3 points cette saison ?,Source : SQL v_top_three_point,0.0,,0.417,0.0,0.139
+S03,SIMPLE,Quel est le pourcentage à 3 points de Nikola Jokic ?,Source : SQL v_player_stats — three_pct,1.0,,0.167,0.0,0.389

@@ -1,0 +1,11 @@
+ID,Catégorie,Question,Notes,Faithfulness,Answer Relevancy,Context Precision,Context Recall,Score Moyen
+C01,COMPLEX,Quel joueur a le meilleur pourcentage à 3 points sur les 5 derniers matchs ?,"Agrégation sur fenêtre glissante, comparaison multi-joueurs",0.241,0.0,0.0,0.0,0.06
+C02,COMPLEX,Compare l'efficacité offensive (points + passes décisives) de Luka Doncic et Jay...,"Calcul composite, comparaison deux joueurs",0.0,0.0,0.0,0.0,0.0
+C03,COMPLEX,Quelle équipe a la meilleure défense sur les 10 derniers matchs ?,"Agrégation équipe, fenêtre glissante longue",0.088,0.0,0.0,0.0,0.022
+C04,COMPLEX,Quel pivot a le meilleur ratio points/minutes jouées cette semaine ?,"Filtre par poste, ratio calculé",0.0,0.0,0.0,0.0,0.0
+N01,NOISY,kari irving cmb de point il a mi hier ??,"Fautes de frappe, langage SMS",0.0,0.0,0.0,0.0,0.0
+N02,NOISY,Qui est le meilleur joueur ?,Question ambiguë sans critère,0.54,0.0,0.0,0.667,0.302
+N03,NOISY,Est-ce que les Lakers ont gagné ou perdu et combien de points de Lebron ?,"Double question, formulation maladroite",0.0,0.0,0.0,0.0,0.0
+S01,SIMPLE,Combien de points a marqué LeBron James lors du dernier match ?,"Stat directe, un joueur, un match",1.0,0.0,0.0,0.0,0.25
+S02,SIMPLE,Quel est le pourcentage aux tirs à 3 points de Stephen Curry cette saison ?,"Stat de saison, un joueur",0.615,0.0,0.0,0.0,0.154
+S03,SIMPLE,Combien de rebonds par match réalise Nikola Jokic en moyenne ?,"Moyenne de saison, stat simple",0.167,0.0,0.0,0.0,0.042

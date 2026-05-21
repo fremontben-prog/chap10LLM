@@ -1,0 +1,112 @@
+[
+  {
+    "ID":"C01",
+    "Catégorie":"COMPLEX",
+    "Question":"Quel joueur a marqué le plus de points ?",
+    "Notes":"Max sur PTS et moyenne PTS",
+    "Faithfulness":1.0,
+    "Context Precision":1.0,
+    "Context Recall":1.0,
+    "Source":"SQL",
+    "Score Moyen":1.0
+  },
+  {
+    "ID":"C02",
+    "Catégorie":"COMPLEX",
+    "Question":"Quels sont les 3 meilleurs scoreurs par match?",
+    "Notes":"Top 3 PTS",
+    "Faithfulness":1.0,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Source":"SQL",
+    "Score Moyen":0.333
+  },
+  {
+    "ID":"C03",
+    "Catégorie":"COMPLEX",
+    "Question":"Quel joueur a le meilleur pourcentage à 3 points ?",
+    "Notes":"Max 3P%",
+    "Faithfulness":1.0,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Source":"SQL",
+    "Score Moyen":0.333
+  },
+  {
+    "ID":"C04",
+    "Catégorie":"COMPLEX",
+    "Question":"Quel joueur a le plus de passes décisives en moyenne ?",
+    "Notes":"Max AST",
+    "Faithfulness":1.0,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Source":"SQL",
+    "Score Moyen":0.333
+  },
+  {
+    "ID":"N01",
+    "Catégorie":"NOISY",
+    "Question":"sga cmb de pts",
+    "Notes":"Abréviation + SMS",
+    "Faithfulness":1.0,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Source":"SQL",
+    "Score Moyen":0.333
+  },
+  {
+    "ID":"N02",
+    "Catégorie":"NOISY",
+    "Question":"c ki le meilleur scoreur",
+    "Notes":"Question vague",
+    "Faithfulness":1.0,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Source":"SQL",
+    "Score Moyen":0.333
+  },
+  {
+    "ID":"N03",
+    "Catégorie":"NOISY",
+    "Question":"jokic cmb de reb",
+    "Notes":"Fautes + oral",
+    "Faithfulness":1.0,
+    "Context Precision":0.0,
+    "Context Recall":0.0,
+    "Source":"SQL",
+    "Score Moyen":0.333
+  },
+  {
+    "ID":"S01",
+    "Catégorie":"SIMPLE",
+    "Question":"Combien de points au total sur la saison 2014-2025 a marqué Shai Gilgeous-Alexan...",
+    "Notes":"Stat directe depuis colonne PTS",
+    "Faithfulness":1.0,
+    "Context Precision":1.0,
+    "Context Recall":1.0,
+    "Source":"SQL",
+    "Score Moyen":1.0
+  },
+  {
+    "ID":"S02",
+    "Catégorie":"SIMPLE",
+    "Question":"Quel est le pourcentage à 3 points de Nikola Jokic ?",
+    "Notes":"Stat directe colonne 3P%",
+    "Faithfulness":1.0,
+    "Context Precision":1.0,
+    "Context Recall":1.0,
+    "Source":"SQL",
+    "Score Moyen":1.0
+  },
+  {
+    "ID":"S03",
+    "Catégorie":"SIMPLE",
+    "Question":"Combien de rebonds au total Nikola Jokic a-t-il pris ?",
+    "Notes":"Stat directe colonne REB",
+    "Faithfulness":1.0,
+    "Context Precision":null,
+    "Context Recall":1.0,
+    "Source":"SQL",
+    "Score Moyen":1.0
+  }
+]

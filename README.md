@@ -81,20 +81,20 @@ Vous pouvez organiser vos documents dans des sous-dossiers pour une meilleure or
 Exécutez le script d'indexation pour traiter les documents et créer l'index FAISS :
 
 ```bash
-python indexer.py
+python -m src.mistralchat.ingestion.indexer.py
 ```
 
 Ce script va :
-1. Charger les documents depuis le dossier `inputs/`
+1. Charger les documents depuis le dossier `data/raw`
 2. Découper les documents en chunks
 3. Générer des embeddings avec Mistral
 4. Créer un index FAISS pour la recherche sémantique
-5. Sauvegarder l'index et les chunks dans le dossier `vector_db/`
+5. Sauvegarder l'index et les chunks dans le dossier `data/vector_db/`
 
 ### 3. Lancer l'application
 
 ```bash
-streamlit run MistralChat.py
+streamlit run app/streamlit_app.py
 ```
 
 L'application sera accessible à l'adresse http://localhost:8501 dans votre navigateur.
@@ -117,7 +117,7 @@ Logfire sera accessible à l'adresse https://logfire-eu.pydantic.dev/fremontben-
 
 ## Modules principaux
 
-### `utils/vector_store.py`
+### `data/vector_store.py`
 
 Gère l'index vectoriel FAISS et la recherche sémantique :
 - Chargement et découpage des documents
