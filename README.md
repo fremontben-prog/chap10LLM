@@ -1,153 +1,249 @@
-# Assistant RAG avec Mistral
+# 🏀 NBA Analyst AI — RAG + SQL avec Mistral AI
 
-Ce projet implémente un assistant virtuel basé sur le modèle Mistral, utilisant la technique de Retrieval-Augmented Generation (RAG) + SQL pour fournir des réponses précises et contextuelles à partir d'une base de connaissances personnalisée.
+Application **RAG (Retrieval-Augmented Generation)** spécialisée NBA combinant :
 
-## Fonctionnalités
+- Recherche vectorielle **FAISS**
+- Génération **Mistral AI**
+- Agent SQL **LangChain**
+- Observabilité complète avec **Logfire**
+- Pipeline d'ingestion multi-format
+- Évaluation **RAGAS**
 
-- 🔍 **Recherche sémantique** avec FAISS pour trouver les documents pertinents
-- 🤖 **Génération de réponses** avec les modèles Mistral (Small ou Large)
-- ⚙️ **Paramètres personnalisables** (modèle, nombre de documents, score minimum)
+L'application permet de poser des questions sur les statistiques NBA, les comparaisons de joueurs, les analyses d'équipes et les documents NBA via une interface **Streamlit** interactive.
 
-## Prérequis
+---
 
-- Python 3.10 
-- Clé API Mistral (obtenue sur [console.mistral.ai](https://console.mistral.ai/))
+## 🚀 Fonctionnalités
 
-## Installation
+### 🔍 RAG documentaire
+- Indexation sémantique des documents NBA
+- Recherche vectorielle avec FAISS
+- Embeddings via Mistral `mistral-embed`
 
-1. **Cloner le dépôt**
+### 🧠 Génération LLM
+- Génération de réponses avec Mistral AI
+- Prompt engineering spécialisé NBA
+- Routage SQL vs RAG
+
+### 🗄️ Agent SQL NBA
+- Requêtes dynamiques sur SQLite
+- Tool LangChain SQL
+- Questions statistiques NBA structurées
+
+### 📊 Observabilité complète
+- Traces détaillées avec **Logfire**
+- Monitoring : retrieval, reranking, génération, latence, tokens
+
+### 📈 Évaluation RAG
+- Évaluation automatique avec **RAGAS**
+- Benchmarks : questions simples, complexes, bruitées
+
+### 📄 Pipeline documentaire
+- Support : PDF, OCR, DOCX, TXT, CSV, Excel
+
+---
+
+## 🏗️ Architecture
+
+```
+project/
+├── app/
+│   └── streamlit_app.py
+│
+├── data/
+│   ├── raw/
+│   ├── vector_db/
+│   └── sqlite/
+│
+├── src/
+│   └── mistralchat/
+│       ├── ingestion/
+│       ├── pipeline/
+│       ├── prompting/
+│       ├── sql/
+│       ├── storage/
+│       ├── observability/
+│       └── config.py
+│
+├── tests/
+│
+├── environment.yml
+├── pyproject.toml
+└── README.md
+```
+
+---
+
+## ⚙️ Stack technique
+
+| Catégorie | Technologies |
+|---|---|
+| LLM / RAG | Mistral AI, LangChain, FAISS |
+| Validation / Observabilité | Pydantic, Logfire |
+| Data / SQL | SQLAlchemy, SQLite, Pandas |
+| Interface | Streamlit |
+
+---
+
+## 📦 Installation
+
+### 1. Cloner le projet
 
 ```bash
-git clone <url-du-repo>
-cd <nom-du-repo>
+git clone <repo-url>
+cd chap10LLM
 ```
 
-2. **Créer un environnement virtuel**
-
-N/A
-
-3. **Installer les dépendances**
-
-## Installation
-
-1. `conda env create -f environment.yml`
-2. `conda activate chap10llm`
-3. **Windows + CUDA** : `.\setup_local.ps1`
-   **Linux CPU**       : `pip install torch torchvision`
-
-4. **Configurer la clé API**
-
-Créez un fichier `.env` à la racine du projet avec le contenu suivant :
-
-```
-MISTRAL_API_KEY=votre_clé_api_mistral
-```
-
-## Structure du projet
-
-```
-.
-├── MistralChat.py          # Application Streamlit principale
-├── indexer.py              # Script pour indexer les documents
-├── nba_engine.py           # Dossier pour préparer le prompt
-├── inputs/                 # Dossier pour les documents sources
-├── inputs_sql/             # Dossier pour les documents SQL (2ème itéraion)
-├── monitoring/             # Dossier pour monitorer sur logfire
-├── pipeline/               # Dossier pour le pipeline
-├── vector_db/              # Dossier pour l'index FAISS et les chunks
-├── database/               # Base de données SQLite pour les interactions
-└── utils/                  # Modules utilitaires
-    ├── config.py           # Configuration de l'application
-    ├── database.py         # Gestion de la base de données
-    └── vector_store.py     # Gestion de l'index vectoriel
-
-```
-
-## Utilisation
-
-### 1. Ajouter des documents
-
-Placez vos documents dans le dossier `inputs/`. Les formats supportés sont :
-- PDF
-- TXT
-- DOCX
-- CSV
-- JSON
-
-Vous pouvez organiser vos documents dans des sous-dossiers pour une meilleure organisation.
-
-### 2. Indexer les documents
-
-Exécutez le script d'indexation pour traiter les documents et créer l'index FAISS :
+### 2. Créer l'environnement Conda
 
 ```bash
-python -m src.mistralchat.ingestion.indexer.py
+conda env create -f environment.yml
+conda activate chap10llm
 ```
 
-Ce script va :
-1. Charger les documents depuis le dossier `data/raw`
-2. Découper les documents en chunks
-3. Générer des embeddings avec Mistral
-4. Créer un index FAISS pour la recherche sémantique
-5. Sauvegarder l'index et les chunks dans le dossier `data/vector_db/`
+### 3. Installation éditable du package
 
-### 3. Lancer l'application
+```bash
+pip install -e .
+```
+
+### 4. Configuration des variables d'environnement
+
+Créer un fichier `.env` :
+
+```env
+MISTRAL_API_KEY=your_api_key
+LOGFIRE_TOKEN=your_logfire_token
+```
+
+### 5. Installation CUDA (optionnel)
+
+**Windows + CUDA**
+```powershell
+.\setup_local.ps1
+```
+
+**Linux CPU**
+```bash
+pip install torch torchvision
+```
+
+---
+
+## 📥 Ingestion des documents
+
+Déposer les documents dans `data/raw/`. Formats supportés : PDF, DOCX, TXT, CSV, XLSX.
+
+### Pipeline d'indexation
+
+```bash
+python -m mistralchat.ingestion.indexer
+```
+
+Le pipeline : charge les documents → valide via Pydantic → découpe en chunks → génère les embeddings Mistral → construit l'index FAISS → sauvegarde les chunks et embeddings.
+
+### Injection SQL NBA
+
+```bash
+python -m mistralchat.sql.load_excel_to_db
+```
+
+---
+
+## 🧪 Évaluation RAGAS
+
+```bash
+python -m mistralchat.eval.evaluate_ragas
+```
+
+Catégories évaluées : `SIMPLE`, `COMPLEX`, `NOISY`
+
+| Type | Exemple |
+|---|---|
+| Simple | `"sga cmb de pts"` |
+| Complexe | `"Qui a le meilleur Net Rating ?"` |
+| Bruité | `"Compare LeBron et Jokic"` |
+
+---
+
+## ▶️ Lancer l'application
 
 ```bash
 streamlit run app/streamlit_app.py
 ```
 
-L'application sera accessible à l'adresse http://localhost:8501 dans votre navigateur.
+Application disponible sur : [http://localhost:8501](http://localhost:8501)
 
-### 4. Injecter les données SQL to db
+---
 
-```bash
-python -m database.load_excel_to_db
-```
+## 📊 Monitoring Logfire
 
-### 5. Injecter des métriques RAGA dans logfire
+Observabilité temps réel : retrieval, reranking, génération, scores, latence, tokens.
 
-```bash
-python -m eval.evaluate_ragas
+Exemple de trace :
 
 ```
+retrieval      → top-k chunks récupérés
+reranking      → scores de pertinence
+génération     → réponse Mistral
+latence        → temps de traitement
+tokens         → consommation
+```
 
-### 6. Consultation de l'activité sur logfire
-Logfire sera accessible à l'adresse https://logfire-eu.pydantic.dev/fremontben-prog/chap10llm/ dans votre navigateur.
+Dashboard : [Pydantic Logfire](https://logfire.pydantic.dev)
 
-## Modules principaux
+---
 
-### `data/vector_store.py`
+## 🧠 Workflow
 
-Gère l'index vectoriel FAISS et la recherche sémantique :
-- Chargement et découpage des documents
-- Génération des embeddings avec Mistral
-- Création et interrogation de l'index FAISS
+```
+Question utilisateur
+        ↓
+Détection SQL vs RAG
+        ↓
+Recherche FAISS
+        ↓
+Reranking
+        ↓
+Contexte injecté
+        ↓
+Génération Mistral
+        ↓
+Réponse Streamlit
+```
 
-### `nba_engine.py`
+---
 
-Construction des prompts pour Mistral
-- Analyse des mots-clés
-- Détection des questions statistiques vs générales
+## 🧪 Exemples de questions
 
-### `utils/database.py`
+**Statistiques**
+- `"Combien de points marque Shai Gilgeous-Alexander ?"`
+- `"Qui a le meilleur Net Rating ?"`
+- `"Quel joueur a le plus de triple-doubles ?"`
 
-Gère la base de données SQLite pour les interactions :
-- Enregistrement des questions et réponses
-- Stockage des feedbacks utilisateurs
-- Récupération des statistiques
+**Comparaisons**
+- `"Compare LeBron James et Nikola Jokic"`
 
-### `sql_tool.py`
-Tool LangChain pour requêtes SQL dynamiques sur la base basketball SQLite.
+**Questions bruitées**
+- `"sga cmb de pts"`
+- `"c ki le meilleur scoreur"`
 
-### `schema.sql`
-Schéma relationnel SQLite adapté au fichier regular_NBA.xlsx
+---
 
+## 🔭 Roadmap
 
-## Personnalisation
+- [x] RAG documentaire
+- [x] SQL Agent NBA
+- [x] Monitoring Logfire
+- [x] Évaluation RAGAS
+- [ ] Reranking avancé
+- [ ] Hybrid Search BM25 + FAISS
+- [ ] Multi-agent routing
+- [ ] Mémoire conversationnelle
+- [ ] Déploiement cloud
 
-Vous pouvez personnaliser l'application en modifiant les paramètres dans `utils/config.py` :
-- Modèles Mistral utilisés
-- Taille des chunks et chevauchement
-- clès API
+---
 
+## 📜 Licence
+
+Projet éducatif / démonstration technique autour des architectures RAG modernes.
